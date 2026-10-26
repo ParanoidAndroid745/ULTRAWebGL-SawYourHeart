@@ -74,6 +74,23 @@ Desktop.ini
 # son salidas de build, se regeneran con WebGLBundleBuilder.BuildAll (~5 min).
 ultrakill-webport/export/ExportedProject/Assets/StreamingAssets/
 
+# --- parche 10b (GREED): assets binarios del juego que se regeneran con AssetRipper
+# NO se versionan los binarios (audio, texturas, mallas, escenas) ni las salidas de build.
+ultrakill-webport/export/GreedPatch10b_ExportedProject/ExportedProject/Library/
+ultrakill-webport/export/GreedPatch10b_ExportedProject/ExportedProject/Temp/
+ultrakill-webport/export/GreedPatch10b_ExportedProject/ExportedProject/Builds/
+ultrakill-webport/export/GreedPatch10b_ExportedProject/ExportedProject/obj/
+ultrakill-webport/export/GreedPatch10b_ExportedProject/ExportedProject/UserSettings/
+ultrakill-webport/export/GreedPatch10b_ExportedProject/ExportedProject/Logs/
+ultrakill-webport/export/GreedPatch10b_ExportedProject/ExportedProject/*.csproj
+ultrakill-webport/export/GreedPatch10b_ExportedProject/ExportedProject/*.sln
+ultrakill-webport/export/GreedPatch10b_ExportedProject/ExportedProject/.vs/
+ultrakill-webport/export/GreedPatch10b_ExportedProject/ExportedProject/.vscode/
+ultrakill-webport/export/GreedPatch10b_ExportedProject/ExportedProject/Assets/**/*.data
+ultrakill-webport/export/GreedPatch10b_ExportedProject/ExportedProject/Assets/**/*.data.meta
+# Bundles WebGL construidos (salidas de build, se regeneran con WebGLBundleBuilder)
+ultrakill-webport/export/GreedPatch10b_ExportedProject/ExportedProject/Assets/StreamingAssets/
+
 
 # Caches de python de las herramientas (ukshot, etc.)
 __pycache__/

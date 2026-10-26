@@ -1,0 +1,1619 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>ULTRAKILL</title>
+    <!-- Consola de diagnostico: se instala antes que UnityLoader para capturar
+         tambien los logs y errores que ocurren durante el arranque del player.
+         La interfaz visible se construye al final del body (F2). -->
+    <script>
+      (function () {
+        'use strict';
+        var MAX = 2000;
+        var logs = [];
+        window.__ukLogs = logs;
+        window.__ukLogErrorCount = 0;
+
+        function stringify(value) {
+          if (typeof value === 'string') return value;
+          if (value instanceof Error) return value.stack || (value.name + ': ' + value.message);
+          if (value === undefined) return 'undefined';
+          if (value === null) return 'null';
+          try { return JSON.stringify(value); }
+          catch (e) {
+            try { return String(value); } catch (e2) { return '[objeto no serializable]'; }
+          }
+        }
+
+        function add(level, args) {
+          var parts = [];
+          for (var i = 0; i < args.length; i++) parts.push(stringify(args[i]));
+          var text = parts.join(' ').slice(0, 8000);
+          var entry = { time: Date.now(), level: level, text: text };
+          logs.push(entry);
+          if (logs.length > MAX) logs.shift();
+          if (window.__ukLogAppend) {
+            try { window.__ukLogAppend(entry); } catch (e) {}
+          }
+          if (level === 'error') {
+            window.__ukLogErrorCount++;
+            if (window.__ukLogOnError) {
+              try { window.__ukLogOnError(); } catch (e) {}
+            }
+          }
+        }
+
+        var methods = ['log', 'info', 'warn', 'error', 'debug'];
+        for (var i = 0; i < methods.length; i++) {
+          (function (name) {
+            var original = console[name];
+            if (typeof original !== 'function') return;
+            var level = (name === 'warn') ? 'warning' : name;
+            console[name] = function () {
+              add(level, arguments);
+              return original.apply(console, arguments);
+            };
+          })(methods[i]);
+        }
+
+        window.UKLog = function (message, level) {
+          add(level || 'info', [message]);
+        };
+
+        window.addEventListener('error', function (e) {
+          if (!e || (!e.message && !e.error)) return;
+          var where = '';
+          if (e.filename) where = ' @ ' + e.filename + ':' + (e.lineno || 0) + ':' + (e.colno || 0);
+          add('error', [(e.message || 'Error de script') + where + (e.error && e.error.stack ? '\n' + e.error.stack : '')]);
+        }, true);
+
+        window.addEventListener('unhandledrejection', function (e) {
+          var reason = e ? e.reason : null;
+          add('error', ['Promesa rechazada sin capturar: ' + stringify(reason) + (reason && reason.stack ? '\n' + reason.stack : '')]);
+        });
+      })();
+    </script>
+    <link rel="shortcut icon" href="TemplateData/favicon.ico">
+    <link rel="stylesheet" href="TemplateData/style.css">
+    <script src="TemplateData/UnityProgress.js"></script>
+    <script src="Build/UnityLoader.js"></script>
+    <script>
+      var unityInstance = UnityLoader.instantiate("unityContainer", "Build/WebGL.json", {onProgress: UnityProgress});
+    </script>
+    <style>
+      body { background: #0c0c0d; }
+      .uk-bar {
+        margin-top: 8px;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 14px;
+        font-family: Helvetica, Verdana, Arial, sans-serif;
+      }
+      .webgl-content .uk-btn {
+        background: #151515;
+        color: #f0c94a;
+        border: 2px solid #f0c94a;
+        padding: 7px 16px;
+        font-family: Helvetica, Verdana, Arial, sans-serif;
+        font-size: 13px;
+        font-weight: bold;
+        letter-spacing: 1px;
+        cursor: pointer;
+      }
+      .webgl-content .uk-btn:hover {
+        background: #f0c94a;
+        color: #111;
+      }
+      .webgl-content .uk-btn.flash {
+        animation: uk-flash 0.7s ease-in-out 3;
+      }
+      @keyframes uk-flash {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(240, 201, 74, 0); }
+        50% { box-shadow: 0 0 0 7px rgba(240, 201, 74, 0.65); }
+      }
+      .uk-hint {
+        color: #8d8d8d;
+        font-size: 12px;
+        font-family: Helvetica, Verdana, Arial, sans-serif;
+      }
+      .uk-status {
+        color: #f0c94a;
+        font-size: 12px;
+        font-family: Helvetica, Verdana, Arial, sans-serif;
+      }
+      /* Cuando el estado se mete dentro del contenedor de pantalla completa
+         (en pantalla completa el navegador solo pinta ese elemento y sus
+         descendientes, asi que fuera de ahi no se veria). */
+      .uk-status.in-fs {
+        position: absolute;
+        top: 8px;
+        right: 12px;
+        z-index: 9998;
+        text-shadow: 0 0 4px #000, 0 0 4px #000;
+        pointer-events: none;
+      }
+      /* Menu de debug estilo test de ULTRAKILL: negro, texto blanco grueso. */
+      .uk-dbg {
+        display: none;
+        /* Fijo: asi se ve tambien en pantalla completa. */
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 9999;
+        overflow-y: auto;
+        box-sizing: border-box;
+        padding: 16px 22px 48px 22px;
+        background: #000;
+        color: #fff;
+        font-family: "Arial Black", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      }
+      .uk-dbg.open { display: block; }
+      .uk-dbg-help {
+        font-size: 15px;
+        font-weight: 900;
+        line-height: 1.35;
+        letter-spacing: 0.3px;
+      }
+      .uk-dbg-close-hint {
+        margin-top: 3px;
+        color: #777;
+        font-size: 12px;
+        letter-spacing: 1px;
+      }
+      .uk-dbg-section {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 30px 0 4px 0;
+      }
+      .uk-dbg-section-title {
+        font-size: 22px;
+        font-weight: 900;
+        letter-spacing: 2px;
+      }
+      .uk-layer { margin: 24px 0 2px 0; }
+      .uk-layer-head { display: flex; align-items: center; gap: 10px; }
+      .uk-layer-name {
+        font-size: 34px;
+        font-weight: 900;
+        line-height: 1;
+        letter-spacing: 1px;
+      }
+      .uk-check {
+        -webkit-appearance: none;
+        appearance: none;
+        flex: none;
+        width: 22px;
+        height: 22px;
+        margin: 0;
+        border: 2px solid #fff;
+        background: transparent;
+        cursor: pointer;
+      }
+      .uk-check:hover { background: #222; }
+      .uk-check:checked {
+        background: #fff;
+        box-shadow: inset 0 0 0 3px #000;
+      }
+      .uk-check:indeterminate {
+        background-color: #fff;
+        background-image: linear-gradient(#000, #000);
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 12px 2px;
+      }
+      .uk-levels { margin: 8px 0 0 2px; }
+      .uk-level {
+        display: block;
+        margin: 0;
+        padding: 1px 3px;
+        border: 0;
+        background: none;
+        color: #fff;
+        font-family: inherit;
+        font-size: 15px;
+        font-weight: 900;
+        line-height: 1.5;
+        letter-spacing: 0.5px;
+        text-align: left;
+        cursor: pointer;
+      }
+      .uk-level:hover { background: #fff; color: #000; }
+      .uk-gear-list { margin-top: 6px; }
+      .uk-gear {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: fit-content;
+        margin: 4px 0;
+        padding: 1px 3px;
+        font-size: 15px;
+        font-weight: 900;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        user-select: none;
+      }
+      .uk-gear:hover { background: #fff; color: #000; }
+      .uk-gear:hover .uk-check { border-color: #000; }
+      .uk-toast {
+        position: fixed;
+        left: 50%;
+        bottom: 26px;
+        transform: translateX(-50%);
+        z-index: 10002;
+        display: none;
+        padding: 8px 16px;
+        background: #101012;
+        border: 2px solid #f0c94a;
+        color: #f0c94a;
+        font-family: Helvetica, Verdana, Arial, sans-serif;
+        font-size: 13px;
+        letter-spacing: 1px;
+      }
+      .uk-toast.show { display: block; }
+      /* Boton flotante de la consola: solo se ve en pantalla completa, donde
+         la barra de botones de abajo queda fuera del elemento fullscreen. */
+      .uk-log-fab {
+        display: none;
+        position: fixed;
+        left: 12px;
+        top: 8px;
+        z-index: 9997;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        background: #000;
+        color: #fff;
+        border: 2px solid #fff;
+        font-family: "Arial Black", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 1px;
+        cursor: pointer;
+      }
+      .uk-log-fab.in-fs { display: flex; }
+      .uk-log-fab:hover { background: #fff; color: #000; }
+      .uk-log-fab-count {
+        padding: 1px 5px;
+        background: #ff3b30;
+        color: #fff;
+        border-radius: 8px;
+        font-size: 10px;
+        line-height: 1.3;
+      }
+      .uk-log-fab-count.hidden { display: none; }
+      .uk-log {
+        display: none;
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100vw;
+        height: 45vh;
+        min-height: 180px;
+        max-height: 65vh;
+        z-index: 10001;
+        box-sizing: border-box;
+        background: rgba(0, 0, 0, 0.96);
+        color: #e8e8e8;
+        border-top: 2px solid #fff;
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 12px;
+      }
+      .uk-log.open { display: flex; flex-direction: column; }
+      .uk-log-head {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        flex: none;
+        padding: 6px 10px;
+        border-bottom: 1px solid #444;
+      }
+      .uk-log-title {
+        color: #fff;
+        font-family: "Arial Black", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-size: 13px;
+        font-weight: 900;
+        letter-spacing: 2px;
+      }
+      .uk-log-count { color: #ff6b6b; font-weight: bold; }
+      .uk-log-spacer { flex: 1; }
+      .uk-log-btn {
+        padding: 3px 7px;
+        background: #000;
+        color: #fff;
+        border: 1px solid #fff;
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 10px;
+        font-weight: bold;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+      }
+      .uk-log-btn:hover, .uk-log-btn.active { background: #fff; color: #000; }
+      .uk-log-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 6px 10px 12px 10px;
+        user-select: text;
+      }
+      .uk-log-line {
+        padding: 1px 0;
+        line-height: 1.4;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .uk-log-time { margin-right: 6px; color: #777; }
+      .uk-log-level { display: inline-block; min-width: 38px; margin-right: 6px; font-weight: bold; }
+      .uk-log-info .uk-log-level { color: #9fd3ff; }
+      .uk-log-debug .uk-log-level { color: #777; }
+      .uk-log-warning .uk-log-level { color: #f0c94a; }
+      .uk-log-error .uk-log-level { color: #ff5555; }
+      .uk-log-warning { color: #f0c94a; }
+      .uk-log-error { color: #ffb3b3; }
+      .uk-log-body.filter-errors .uk-log-line:not(.uk-log-error) { display: none; }
+    </style>
+  </head>
+  <body>
+    <div class="webgl-content">
+      <div id="unityContainer" style="width: 1280px; height: 720px; position: relative;"></div>
+      <div class="footer">
+        <div class="webgl-logo"></div>
+        <div class="fullscreen" onclick="UKFullscreen.toggle()" title="Pantalla completa"></div>
+        <div class="title">ULTRAKILL</div>
+      </div>
+      <div class="uk-bar">
+        <button id="uk-fs-btn" class="uk-btn" onclick="UKFullscreen.toggle()">PANTALLA COMPLETA</button>
+        <button id="uk-dbg-btn" class="uk-btn" onclick="UKDebug.toggle()">NIVELES (F3)</button>
+        <button id="uk-log-btn" class="uk-btn" onclick="UKLogUI.toggle()">CONSOLA (F2)</button>
+        <span id="uk-fs-hint" class="uk-hint">Esc pausa. Usa el boton (no F11). Salir: manten Esc 2 s o Shift+Esc.</span>
+        <span id="uk-fs-status" class="uk-status"></span>
+      </div>
+    </div>
+
+    <!-- El menu de niveles, el aviso y el estado del teclado se mueven dentro
+         de #unityContainer al entrar en pantalla completa (fuera de ahi no se
+         ven: en fullscreen el navegador solo pinta ese elemento). No pueden
+         vivir en el HTML de dentro porque el loader de Unity vacia el
+         contenedor al arrancar. -->
+    <div id="uk-dbg-panel" class="uk-dbg">
+      <div class="uk-dbg-help">
+        <div>click checkbox next to layer to mark as completed</div>
+        <div>click scene name to teleport to it</div>
+        <div class="uk-dbg-close-hint">F3 / ESC PARA CERRAR · F2 CONSOLA</div>
+      </div>
+      <div id="uk-dbg-levels"></div>
+      <div id="uk-dbg-gear"></div>
+    </div>
+    <div id="uk-toast" class="uk-toast"></div>
+    <button id="uk-log-fab" class="uk-log-fab" type="button" title="Consola de logs (F2)">
+      LOG
+      <span id="uk-log-fab-count" class="uk-log-fab-count hidden">0</span>
+    </button>
+    <div id="uk-log-panel" class="uk-log">
+      <div class="uk-log-head">
+        <span class="uk-log-title">CONSOLA</span>
+        <span id="uk-log-count" class="uk-log-count">0 errores</span>
+        <span class="uk-log-spacer"></span>
+        <button id="uk-log-filter" class="uk-log-btn" type="button">SOLO ERRORES</button>
+        <button id="uk-log-copy" class="uk-log-btn" type="button">COPIAR</button>
+        <button id="uk-log-clear" class="uk-log-btn" type="button">LIMPIAR</button>
+        <button id="uk-log-close" class="uk-log-btn" type="button">CERRAR (F2)</button>
+      </div>
+      <div id="uk-log-body" class="uk-log-body"></div>
+    </div>
+
+
+    <script>
+      (function () {
+        'use strict';
+
+        // Puente con la consola visible (script del <head>). Si por lo que sea
+        // no existiera, el menu sigue funcionando igual.
+        function diag(message, level) {
+          if (typeof window.UKLog === 'function') {
+            try { window.UKLog(message, level || 'info'); } catch (e) {}
+          }
+        }
+
+        // =====================================================================
+        // Bloqueo del raton: el juego lo suelta y lo vuelve a pedir en CADA
+        // evento de raton (lo hace el modulo de input de la UI,
+        // FirstPersonInputModule, presente en los niveles 0-2..0-5).
+        // En el navegador eso es fatal: Chrome suelta el bloqueo y no lo
+        // vuelve a conceder sin un gesto del usuario, asi que la camara se
+        // queda con el raton absoluto y no puede girar 360 grados.
+        // Aqui se retrasa la liberacion: si el juego sigue en partida (cursor
+        // oculto) el raton NO se suelta; si el juego ha abierto un menu
+        // (cursor visible) la liberacion se aplica y el menu se puede usar.
+        // Si ademas el juego vuelve a pedir el bloqueo (patron "suelta y
+        // vuelve a pedir" de la UI), se cancela la liberacion pendiente.
+        (function () {
+          try {
+            var nativeExit = document.exitPointerLock;
+            if (!nativeExit) return;
+            // El menu F3 necesita soltar el raton aunque el juego lo mantenga
+            // oculto (el wrapper de abajo retrasa la liberacion en partida).
+            window.__ukNativeExitPointerLock = nativeExit;
+            var releaseTimer = 0;
+            document.exitPointerLock = function () {
+              if (releaseTimer) { clearTimeout(releaseTimer); releaseTimer = 0; }
+              releaseTimer = setTimeout(function () {
+                releaseTimer = 0;
+                var c = canvasEl();
+                var hidden = false;
+                try { hidden = !!c && getComputedStyle(c).cursor === 'none'; } catch (e) {}
+                if (hidden) return;   // el juego sigue en partida: no perder el raton
+                nativeExit.call(document);
+              }, 250);
+            };
+            try {
+              var proto = HTMLCanvasElement.prototype;
+              var nativeReq = proto.requestPointerLock;
+              if (nativeReq) {
+                proto.requestPointerLock = function () {
+                  if (releaseTimer) { clearTimeout(releaseTimer); releaseTimer = 0; }
+                  return nativeReq.apply(this, arguments);
+                };
+              }
+            } catch (e) {}
+          } catch (e) {}
+        })();
+
+        // =====================================================================
+        // Pantalla completa con bloqueo de teclado
+        // =====================================================================
+        // Chrome/Edge: navigator.keyboard.lock() captura TODAS las teclas
+        // (Escape, Ctrl+D, Ctrl+T, Ctrl+W...).
+        // Firefox 151+/Safari 26.4+: requestFullscreen({ keyboardLock: "browser" })
+        // hace que Escape solo salga con pulsacion larga y permite anular atajos.
+        // En navegadores sin navigator.keyboard (Firefox/Safari) anadimos la
+        // opcion a cualquier requestFullscreen (incluida la de Unity); si no
+        // la soportan, se reintenta sin ella.
+        try {
+          var nativeRequestFs = Element.prototype.requestFullscreen;
+          // Chrome/Edge usan navigator.keyboard.lock() (no soportan la opcion
+          // nueva). Firefox 151+/Safari 26.4+ usan la opcion keyboardLock.
+          var fsKeyboardLock = !(navigator.keyboard && navigator.keyboard.lock);
+          var fsOptionRejected = false;
+          if (nativeRequestFs) {
+            Element.prototype.requestFullscreen = function (options) {
+              // Si ya estamos en pantalla completa (o hay una peticion en
+              // curso) NO se vuelve a pedir. Una segunda peticion hace que el
+              // navegador salga y vuelva a entrar de fullscreen, y al salir
+              // Chrome libera el bloqueo de teclado: los atajos del navegador
+              // (Ctrl+D, Ctrl+T, Ctrl+W) volvian a funcionar.
+              if (isFs() || fsRequestInFlight) {
+                return Promise.resolve();
+              }
+              var self = this;
+              var done = function () { fsRequestInFlight = false; };
+              fsRequestInFlight = true;
+
+              if (!fsKeyboardLock) {
+                var p0 = nativeRequestFs.call(this, options);
+                if (p0 && p0.then) { p0.then(done, done); } else { done(); }
+                return p0;
+              }
+
+              var opts = {};
+              if (options) {
+                for (var k in options) {
+                  if (Object.prototype.hasOwnProperty.call(options, k)) opts[k] = options[k];
+                }
+              }
+              opts.keyboardLock = 'browser';
+              var p;
+              try {
+                p = nativeRequestFs.call(this, opts);
+              } catch (e) {
+                fsKeyboardLock = false;
+                fsOptionRejected = true;
+                done();
+                return nativeRequestFs.call(this, options);
+              }
+              if (p && p.then) {
+                // Si el navegador no soporta la opcion (NotSupportedError) se
+                // desactiva para siempre y se reintenta sin ella: Chrome/Edge
+                // usan navigator.keyboard.lock().
+                return p.then(function (v) { done(); return v; }, function (err) {
+                  done();
+                  if (err && (err.name === 'NotSupportedError' || err.name === 'TypeError')) {
+                    fsKeyboardLock = false;
+                    fsOptionRejected = true;
+                    return nativeRequestFs.call(self, options);
+                  }
+                  throw err;
+                });
+              }
+              done();
+              return p;
+            };
+          }
+        } catch (e) {}
+
+        var lockActive = false;
+        var desired = false;
+        var fsFallback = false;
+        var reentryToken = 0;
+        var lockTimers = [];
+        var fsRequestInFlight = false;
+        var kbRetryAt = 0;
+        var escapeHeldSince = 0;
+        var lastEscapeHeldMs = 0;
+        var lastEscapeAt = 0;
+        // Chrome SOLO concede el bloqueo de teclado (navigator.keyboard.lock)
+        // en pantalla completa iniciada por JavaScript ("The Keyboard Lock API
+        // is only available when JavaScript-initiated full screen is active",
+        // docs de Chrome). Sin fullscreen el lock() falla y los atajos del
+        // navegador (Ctrl+D, Ctrl+T, Ctrl+W) se cuelan. Por eso se entra en
+        // pantalla completa con el primer gesto real del usuario.
+        var autoFs = true;
+        // Momento en el que se concedio el bloqueo por ultima vez: Chrome
+        // puede soltarlo en silencio (Escape, perdida de foco) sin avisar,
+        // asi que no basta con fiar de lockActive.
+        var lockGrantedAt = 0;
+        var btn = document.getElementById('uk-fs-btn');
+        var statusEl = document.getElementById('uk-fs-status');
+
+        var isFirefox = /Firefox\//.test(navigator.userAgent);
+        var firefoxVersion = (function () {
+          var m = navigator.userAgent.match(/Firefox\/(\d+)/);
+          return m ? parseInt(m[1], 10) : 0;
+        })();
+        var oldFirefox = isFirefox && firefoxVersion > 0 && firefoxVersion < 151;
+
+        function fsEl() {
+          return document.fullscreenElement || document.webkitFullscreenElement || null;
+        }
+
+        function isFs() { return !!fsEl(); }
+
+        function canvasEl() {
+          return document.querySelector('#unityContainer canvas') || document.querySelector('canvas');
+        }
+
+        function requestFs() {
+          // Pide el fullscreen directamente sobre el contenedor del canvas: asi
+          // la peticion sale DENTRO del clic (con gesto de usuario), que es lo
+          // que exige el navegador. Despues se avisa a Unity para que su
+          // estado interno quede sincronizado; su peticion se ignora (ya hay
+          // una en curso) porque una segunda haria que el navegador saliera y
+          // volviera a entrar de fullscreen, y al salir Chrome suelta el
+          // bloqueo de teclado (vuelven los atajos Ctrl+D, Ctrl+T, Ctrl+W).
+          try {
+            var c = canvasEl();
+            var el = (c && c.parentNode) || document.documentElement;
+            if (el.requestFullscreen) {
+              // El parche de requestFullscreen (arriba) se encarga de marcar
+              // la peticion en curso y de inyectar la opcion keyboardLock.
+              var pf = el.requestFullscreen();
+              if (pf && pf.catch) pf.catch(function () {});
+            }
+          } catch (e) {}
+          try {
+            if (window.unityInstance && unityInstance.SetFullscreen) {
+              unityInstance.SetFullscreen(1);
+            }
+          } catch (e) {}
+        }
+
+        function exitFs() {
+          try {
+            if (window.unityInstance && unityInstance.SetFullscreen) {
+              unityInstance.SetFullscreen(0);
+              return;
+            }
+          } catch (e) {}
+          try {
+            if (document.exitFullscreen) {
+              var p = document.exitFullscreen();
+              if (p && p.catch) p.catch(function () {});
+            } else if (document.webkitExitFullscreen) {
+              document.webkitExitFullscreen();
+            }
+          } catch (e) {}
+        }
+
+        // Reintento de fullscreen tras un Escape: pide fullscreen sobre el
+        // contenedor que Unity reconoce (el padre del canvas), sin crear nodos.
+        function requestFsNative() {
+          try {
+            var c = canvasEl();
+            var el = (c && c.parentNode) || document.documentElement;
+            var fn = el.requestFullscreen || el.webkitRequestFullscreen;
+            if (!fn) return false;
+            var p = fn.call(el);
+            if (p && p.catch) p.catch(function () {});
+            return true;
+          } catch (e) { return false; }
+        }
+
+        function updateStatus() {
+          if (!statusEl) return;
+          if (!isFs()) { statusEl.textContent = ''; return; }
+          // Estado del raton: si el juego lo tiene oculto (estamos jugando) y
+          // no hay bloqueo, el jugador debe saber que hay que pulsar una tecla.
+          var raton = lockHeld()
+            ? 'Ratón bloqueado'
+            : (gameCursorHidden() ? 'Ratón sin bloqueo: pulsa una tecla' : '');
+          if (navigator.keyboard && navigator.keyboard.lock) {
+            var tec;
+            if (lockActive) {
+              tec = 'Teclado bloqueado';
+            } else if (!isFs()) {
+              tec = 'Entra en pantalla completa para bloquear los atajos';
+            } else {
+              tec = 'Pulsa una tecla para bloquear los atajos';
+            }
+            statusEl.textContent = raton ? (raton + ' · ' + tec) : tec;
+          } else if (oldFirefox) {
+            statusEl.textContent = 'Firefox antiguo: no puede bloquear atajos. Usa Chrome/Edge.';
+          } else if (fsOptionRejected) {
+            statusEl.textContent = 'Teclado sin bloqueo: usa Chrome/Edge.';
+          } else {
+            statusEl.textContent = 'Teclado bloqueado';
+          }
+        }
+
+        function lockKeyboard() {
+          if (!navigator.keyboard || !navigator.keyboard.lock) return;
+          try {
+            var p = navigator.keyboard.lock(); // todas las teclas
+            if (p && p.then) {
+              p.then(function () {
+                lockActive = true;
+                lockGrantedAt = Date.now();
+                updateStatus();
+              }).catch(function () {
+                lockActive = false;
+                updateStatus();
+              });
+            } else {
+              lockActive = true;
+              lockGrantedAt = Date.now();
+              updateStatus();
+            }
+          } catch (e) {
+            lockActive = false;
+            updateStatus();
+          }
+        }
+
+        function unlockKeyboard() {
+          lockActive = false;
+          if (!navigator.keyboard || !navigator.keyboard.unlock) return;
+          try { navigator.keyboard.unlock(); } catch (e) {}
+        }
+
+        function scheduleLockRetries() {
+          for (var i = 0; i < lockTimers.length; i++) clearTimeout(lockTimers[i]);
+          lockTimers = [];
+          var delays = [0, 200, 600, 1500, 3000];
+          for (var j = 0; j < delays.length; j++) {
+            (function (ms) {
+              lockTimers.push(setTimeout(function () {
+                if (isFs() && !lockActive) lockKeyboard();
+              }, ms));
+            })(delays[j]);
+          }
+        }
+
+        function setLabel(text) {
+          if (btn) btn.textContent = text;
+        }
+
+        function flashButton() {
+          if (!btn) return;
+          btn.classList.remove('flash');
+          void btn.offsetWidth;
+          btn.classList.add('flash');
+        }
+
+        // Los overlays (menu de niveles, aviso, estado del teclado) tienen que
+        // estar DENTRO del elemento fullscreen para que se vean. Moverlos
+        // conserva su identidad y sus handlers.
+        function moveOverlays(inside) {
+          try {
+            var c = canvasEl();
+            var cont = (c && c.parentNode) || document.getElementById('unityContainer');
+            if (!cont) return;
+            var panel = document.getElementById('uk-dbg-panel');
+            var toast = document.getElementById('uk-toast');
+            var status = document.getElementById('uk-fs-status');
+            var logPanel = document.getElementById('uk-log-panel');
+            var logFab = document.getElementById('uk-log-fab');
+            if (!panel || !toast || !status) return;
+            if (!moveOverlays.home) {
+              moveOverlays.home = {
+                panel: panel.parentNode,
+                toast: toast.parentNode,
+                status: status.parentNode,
+                logPanel: logPanel ? logPanel.parentNode : null,
+                logFab: logFab ? logFab.parentNode : null
+              };
+            }
+            var home = moveOverlays.home;
+            if (inside) {
+              if (panel.parentNode !== cont) cont.appendChild(panel);
+              if (toast.parentNode !== cont) cont.appendChild(toast);
+              if (status.parentNode !== cont) {
+                cont.appendChild(status);
+                status.classList.add('in-fs');
+              }
+              if (logPanel && logPanel.parentNode !== cont) cont.appendChild(logPanel);
+              if (logFab) {
+                if (logFab.parentNode !== cont) cont.appendChild(logFab);
+                logFab.classList.add('in-fs');
+              }
+            } else {
+              if (panel.parentNode !== home.panel) home.panel.appendChild(panel);
+              if (toast.parentNode !== home.toast) home.toast.appendChild(toast);
+              if (status.parentNode !== home.status) {
+                home.status.appendChild(status);
+                status.classList.remove('in-fs');
+              }
+              if (logPanel && home.logPanel && logPanel.parentNode !== home.logPanel) home.logPanel.appendChild(logPanel);
+              if (logFab) {
+                if (home.logFab && logFab.parentNode !== home.logFab) home.logFab.appendChild(logFab);
+                logFab.classList.remove('in-fs');
+              }
+            }
+          } catch (e) {}
+        }
+
+        function onFullscreenChange() {
+          fsRequestInFlight = false;
+          if (isFs()) {
+            moveOverlays(true);
+            desired = true;
+            reentryToken++;
+            setLabel('SALIR DE PANTALLA COMPLETA');
+            lockKeyboard();
+            scheduleLockRetries();
+            updateStatus();
+            return;
+          }
+
+          // Al salir de fullscreen el bloqueo de teclado se desactiva solo
+          // (Chrome lo libera en cuanto sales de pantalla completa).
+          moveOverlays(false);
+          unlockKeyboard();
+          for (var i = 0; i < lockTimers.length; i++) clearTimeout(lockTimers[i]);
+          lockTimers = [];
+          setLabel('PANTALLA COMPLETA');
+          updateStatus();
+
+          // Salida INTENCIONAL: el usuario la ha pedido (boton, Shift+Esc o
+          // Escape pulsado largo). No se re-entra.
+          var heldLong = (escapeHeldSince > 0 && (Date.now() - escapeHeldSince) > 900) ||
+                         (lastEscapeHeldMs > 900 && (Date.now() - lastEscapeAt) < 3000);
+          if (!desired || heldLong) {
+            desired = false;
+            fsFallback = false;
+            return;
+          }
+
+          // Salida NO intencionada (transitoria): hay que volver a entrar y
+          // volver a bloquear el teclado. Antes, cualquier salida mataba el
+          // bloqueo para siempre (el estado "wasLocked" se comprobaba DESPUES
+          // de poner lockActive=false, asi que nunca era cierto) y los atajos
+          // del navegador (Ctrl+D, Ctrl+T, Ctrl+W) volvian a funcionar.
+          var token = ++reentryToken;
+          setTimeout(function () {
+            if (token !== reentryToken || isFs()) return;
+            if (!requestFsNative()) {
+              desired = false;
+              flashButton();
+              return;
+            }
+            setTimeout(function () {
+              if (token !== reentryToken) return;
+              if (!isFs()) {
+                // El navegador exige un clic: queda el boton y se reintenta
+                // en el siguiente clic/tecla dentro del juego.
+                desired = false;
+                fsFallback = true;
+                flashButton();
+              }
+            }, 800);
+          }, 80);
+        }
+
+        function toggle() {
+          if (isFs() || desired) {
+            desired = false;
+            fsFallback = false;
+            autoFs = false;      // el usuario no quiere pantalla completa
+            escapeHeldSince = 0;
+            unlockKeyboard();
+            exitFs();
+          } else {
+            desired = true;
+            fsFallback = false;
+            requestFs();
+          }
+        }
+
+        if ('onfullscreenchange' in document) {
+          document.addEventListener('fullscreenchange', onFullscreenChange);
+        } else if ('onwebkitfullscreenchange' in document) {
+          document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+        }
+
+        // =====================================================================
+        // Pointer lock (camara)
+        // =====================================================================
+        // El juego pide el bloqueo del raton al entrar en el nivel, pero el
+        // navegador solo lo concede si la peticion se hace dentro de un gesto
+        // del usuario (tecla o clic). Ademas Chrome rechaza la peticion
+        // durante ~1,3 s despues de que el usuario abandone el bloqueo
+        // (tecla Esc): "Pointer lock cannot be acquired immediately after the
+        // user has exited the lock".
+        // Si no se reintenta, la camara se queda con el raton absoluto y da
+        // saltos al moverlo; ademas cada nueva pulsacion de Esc reinicia ese
+        // bloqueo de Chrome y la camara no se recupera nunca.
+        // Por eso reintentamos en cada gesto (tecla o clic) y de forma
+        // periodica mientras el juego tenga el raton oculto.
+        var lockPending = false;
+        var lockRetryAt = 0;
+        var lockBackoff = 700;
+
+        function gameCursorHidden() {
+          var c = canvasEl();
+          if (!c) return false;
+          try { return getComputedStyle(c).cursor === 'none'; } catch (e) { return false; }
+        }
+
+        function lockHeld() {
+          var c = canvasEl();
+          return !!(c && document.pointerLockElement === c);
+        }
+
+        function requestPointerLock() {
+          // Con el menu F3 o la consola abiertos el raton debe quedar libre
+          // para poder pulsar botones; si no, el reintento periodico lo
+          // recaptura.
+          if (dbgOpen || logOpen) { lockPending = false; return; }
+          var c = canvasEl();
+          if (!c) return;
+          if (lockHeld()) { lockPending = false; lockBackoff = 700; return; }
+          // Si el juego esta en un menu o en pausa el cursor esta visible:
+          // no se pide el bloqueo, pero se recuerda para intentarlo en el
+          // siguiente gesto (al reanudar la partida).
+          if (!gameCursorHidden()) { lockPending = true; return; }
+          try {
+            var p = c.requestPointerLock();
+            lockPending = true;
+            if (p && p.catch) {
+              p.catch(function () { lockPending = true; });
+            }
+          } catch (e) {
+            lockPending = true;
+          }
+        }
+
+        // Reintento periodico mientras el juego mantiene el raton oculto y
+        // no tenemos el bloqueo. Chrome rechaza el bloqueo durante ~1,3 s
+        // despues de que el usuario lo abandone con la tecla Esc, asi que hay
+        // que seguir insistiendo: si el ultimo gesto del usuario es reciente
+        // (Chrome mantiene la activacion ~5 s) el reintento se concede solo.
+        var lastCursorHidden = false;
+        setInterval(function () {
+          var hidden = gameCursorHidden();
+          // El juego esta en partida y no tenemos el bloqueo del raton:
+          // hay que seguir insistiendo (el navegador lo suelta al cambiar de
+          // nivel, al pulsar Escape, al perder el foco...).
+          if (hidden && !lockHeld()) lockPending = true;
+          // El juego acaba de entrar en partida (o ha reanudado).
+          if (hidden && !lastCursorHidden) lockPending = true;
+          lastCursorHidden = hidden;
+          if (!lockPending) return;
+          if (lockHeld()) { lockPending = false; return; }
+          if (!hidden) return;   // menus/pausa: el raton esta visible
+          var now = Date.now();
+          if (now < lockRetryAt) return;
+          lockRetryAt = now + lockBackoff;
+          lockBackoff = Math.min(lockBackoff * 2, 2000);   // espera creciente
+          requestPointerLock();
+        }, 500);
+
+        // Reintento del BLOQUEO DE TECLADO. Chrome solo lo concede si hay
+        // "transient activation" (un gesto del usuario en los ultimos ~5 s),
+        // asi que se reintenta un rato despues de cada gesto. YA NO hace falta
+        // estar en pantalla completa: antes el bloqueo solo se pedia dentro de
+        // "if (isFs())" y por eso los atajos del navegador (Ctrl+D, Ctrl+T,
+        // Ctrl+W) se colaban fuera de fullscreen.
+        setInterval(function () {
+          if (!navigator.keyboard || !navigator.keyboard.lock) return;
+          var now = Date.now();
+          if (now - lastGestureAt > 5000) return;   // sin gesto reciente no hay activacion
+          // lockActive puede quedarse obsoleto: Chrome suelta el bloqueo al
+          // pulsar Escape o al perder el foco, y no avisa. Si el bloqueo no se
+          // ha confirmado hace poco, se vuelve a pedir.
+          if (lockActive && now - lockGrantedAt < 1500) return;
+          if (now < kbRetryAt) return;
+          kbRetryAt = now + 800;
+          lockKeyboard();
+        }, 600);
+
+        // Al perder el foco de la ventana Chrome suelta el bloqueo de teclado
+        // sin avisar: hay que olvidarse del estado para que los reintentos
+        // vuelvan a pedirlo.
+        window.addEventListener('blur', function () {
+          lockActive = false;
+          updateStatus();
+        });
+        document.addEventListener('visibilitychange', function () {
+          if (document.hidden) {
+            lockActive = false;
+            updateStatus();
+          }
+        });
+
+        function capturePointer() {
+          var c = canvasEl();
+          if (!c) return;
+          // Con el menu de niveles o la consola abiertos no se toca el raton:
+          // si no, al pinchar en un boton se capturaria el puntero y la
+          // interfaz dejaria de responder.
+          if (dbgOpen || logOpen) return;
+          // Un gesto nuevo del usuario reinicia la espera de los reintentos.
+          lockBackoff = 700;
+          if (!isFs() && gameCursorHidden() && (fsFallback || autoFs)) {
+            fsFallback = false;
+            requestFs();
+          }
+          requestPointerLock();
+        }
+
+        // Cualquier clic (tambien en la interfaz) es un gesto valido para
+        // recuperar el raton y para pedir el bloqueo de teclado.
+        document.addEventListener('mousedown', function (e) {
+          if (e.button !== 0) return;
+          onUserGesture();
+          capturePointer();
+        }, true);
+
+        // Cualquier otro gesto real del usuario tambien sirve para pedir el
+        // bloqueo de teclado (que es lo unico que Chrome acepta).
+        document.addEventListener('pointerdown', onUserGesture, true);
+        document.addEventListener('touchstart', onUserGesture, true);
+
+        // El navegador puede soltar el bloqueo (tecla Esc, cambio de
+        // pantalla completa...): hay que volver a pedirlo.
+        document.addEventListener('pointerlockchange', function () {
+          if (!lockHeld()) lockPending = true;
+          updateStatus();
+        }, true);
+
+        document.addEventListener('pointerlockerror', function () {
+          lockPending = true;
+          updateStatus();
+        }, true);
+
+        // =====================================================================
+        // Teclado: reintentar bloqueo y anular atajos del navegador
+        // =====================================================================
+        // El bloqueo de teclado (navigator.keyboard.lock) SOLO se concede si la
+        // peticion sale de un GESTO del usuario (transient activation). Antes
+        // solo se pedia dentro de "if (isFs())", de modo que FUERA de pantalla
+        // completa el teclado nunca se bloqueaba y los atajos de Chrome
+        // (Ctrl+D marcadores, Ctrl+T pestanas, Ctrl+W, Ctrl+N) se colaban.
+        // Ademas Esc suelta el bloqueo del teclado (y sale de fullscreen), con
+        // lo que la proteccion se caia entera: hay que re-bloquear en el
+        // siguiente gesto, no confiar en un timer.
+        var lastGestureAt = 0;
+
+        function isModifierKey(e) {
+            return e.ctrlKey || e.metaKey || e.altKey;
+        }
+
+        function onUserGesture() {
+            lastGestureAt = Date.now();
+            // Chrome SOLO concede el bloqueo de teclado en pantalla completa
+            // iniciada por JavaScript. Este gesto es justo lo que el navegador
+            // exige para concederla, asi que se pide aqui: sin esto el juego
+            // puede quedarse en ventana y los atajos del navegador (Ctrl+D,
+            // Ctrl+T, Ctrl+W) funcionan.
+            if (autoFs && !isFs() && !fsRequestInFlight) {
+                requestFs();
+            }
+            lockKeyboard();
+        }
+
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape' && !e.repeat) escapeHeldSince = Date.now();
+
+          // Gesto real del usuario: aqui Chrome concede el bloqueo de teclado.
+          // Se llama SIEMPRE (no solo si !lockActive): Chrome suelta el bloqueo
+          // al pulsar Esc y no hay evento que lo notifique, asi que lockActive
+          // puede quedarse obsoleto. Volver a pedirlo es idempotente.
+          onUserGesture();
+
+          // preventDefault no sirve contra los atajos de nivel de navegador
+          // (Chrome no permite anular Ctrl+D ni Ctrl+T): solo para el
+          // comportamiento por defecto del DOM (scroll, F3...). Por eso no se
+          // tocan las combinaciones con Ctrl/Meta/Alt: Unity las necesita para
+          // el rebinding de teclas.
+          if (!isModifierKey(e)) {
+            e.preventDefault();
+          }
+
+          // Se pide el bloqueo tambien con Escape: el navegador suelta el
+          // raton al pulsar Escape (y durante ~1,3 s Chrome no vuelve a
+          // concederlo), asi que esa pulsacion es justo la que hay que
+          // reintentar para recuperar la camara. En menús/pausa el cursor
+          // esta visible y requestPointerLock() no hace nada.
+          capturePointer();
+        }, true);
+
+        document.addEventListener('keyup', function (e) {
+          if (e.key === 'Escape') {
+            if (escapeHeldSince > 0) {
+              lastEscapeHeldMs = Date.now() - escapeHeldSince;
+              lastEscapeAt = Date.now();
+            }
+            escapeHeldSince = 0;
+          }
+        }, true);
+
+        // Salida deliberada de pantalla completa: Shift+Esc.
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape' && e.shiftKey && isFs()) {
+            e.preventDefault();
+            desired = false;
+            fsFallback = false;
+            autoFs = false;      // salida voluntaria
+            escapeHeldSince = 0;
+            unlockKeyboard();
+            exitFs();
+          }
+        }, true);
+
+        window.UKFullscreen = { toggle: toggle };
+
+        // =====================================================================
+        // Menu de niveles (debug): salto directo a cualquier nivel para no
+        // tener que avanzar la campaña a mano.
+        // Usa el FinalRank de la escena ("Panel" -> RanklessNextLevel), que
+        // carga el bundle del acto correspondiente y luego la escena.
+        // =====================================================================
+        var UK_LAYERS = [
+            { title: 'LAYER 0', index: 0, lastLevel: 5, levels: [
+                ['TUTORIAL', 'Tutorial'],
+                ['0-1', 'Level 0-1'],
+                ['0-2', 'Level 0-2'],
+                ['0-S', 'Level 0-S'],
+                ['0-3', 'Level 0-3'],
+                ['0-4', 'Level 0-4'],
+                ['0-5', 'Level 0-5']
+            ]},
+            { title: 'LAYER 1', index: 1, lastLevel: 9, levels: [
+                ['1-1', 'Level 1-1'],
+                ['1-2', 'Level 1-2'],
+                ['1-3', 'Level 1-3'],
+                ['1-4', 'Level 1-4'],
+                ['1-S', 'Level 1-S']
+            ]},
+            { title: 'LAYER 2', index: 2, lastLevel: 13, levels: [
+                ['2-1', 'Level 2-1'],
+                ['2-2', 'Level 2-2'],
+                ['2-3', 'Level 2-3'],
+                ['2-4', 'Level 2-4'],
+                ['2-S', 'Level 2-S']
+            ]},
+            { title: 'LAYER 3', index: 3, lastLevel: 15, levels: [
+                ['3-1', 'Level 3-1'],
+                ['3-2', 'Level 3-2']
+            ]},
+            { title: 'LAYER 4 (GREED)', index: 4, lastLevel: 19, levels: [
+                ['4-1', 'Level 4-1'],
+                ['4-2', 'Level 4-2'],
+                ['4-3', 'Level 4-3'],
+                ['4-4', 'Level 4-4'],
+                ['4-S', 'Level 4-S']
+            ]},
+            { title: 'PRIME', index: 5, prime: true, lastLevel: -1, levels: [
+                ['P-1', 'Level P-1']
+            ]}
+        ];
+
+        var UK_GEAR = [
+            ['REVOLVER', 'revolver', ['rev0', 'rev1', 'rev2', 'rev3', 'revalt']],
+            ['SHOTGUN', 'shotgun', ['sho0', 'sho1', 'sho2', 'sho3']],
+            ['NAILGUN', 'nailgun', ['nai0', 'nai1', 'nai2', 'nai3', 'naialt']],
+            ['RAILCANNON', 'railcannon', ['rai0', 'rai1', 'rai2', 'rai3']],
+            ['ROCKET LAUNCHER', 'rocket', ['rock0', 'rock1', 'rock2', 'rock3']],
+            ['BEAMGUN', 'beamgun', ['beam0', 'beam1', 'beam2', 'beam3']],
+            ['ARMS', 'arms', ['arm1', 'arm2', 'arm3']]
+        ];
+
+        var UK_ALL_GEAR_IDS = (function () {
+            var out = [];
+            UK_GEAR.forEach(function (family) { out = out.concat(family[2]); });
+            return out;
+        })();
+
+        var dbgPanel = document.getElementById('uk-dbg-panel');
+        var dbgLevels = document.getElementById('uk-dbg-levels');
+        var dbgGear = document.getElementById('uk-dbg-gear');
+        var dbgBuilt = false;
+        var dbgOpen = false;
+        // Consola de logs abierta: al igual que el menu F3, libera el raton.
+        var logOpen = false;
+        var debugState = null;
+        var layerChecks = {};
+        var gearChecks = {};
+        var allLevelsCheck = null;
+        var allGearCheck = null;
+
+        function makeCheck() {
+            var c = document.createElement('input');
+            c.type = 'checkbox';
+            c.className = 'uk-check';
+            return c;
+        }
+
+        function buildDebugList() {
+            if (dbgBuilt || !dbgLevels || !dbgGear) return;
+            dbgBuilt = true;
+
+            var levelsHead = document.createElement('div');
+            levelsHead.className = 'uk-dbg-section';
+            var levelsTitle = document.createElement('div');
+            levelsTitle.className = 'uk-dbg-section-title';
+            levelsTitle.textContent = 'NIVELES';
+            allLevelsCheck = makeCheck();
+            allLevelsCheck.title = 'Marcar todos los niveles como vencidos';
+            allLevelsCheck.addEventListener('change', function () {
+                sendDebug('DebugSetAllLevelsCompleted', allLevelsCheck.checked ? '1' : '0');
+            });
+            levelsHead.appendChild(levelsTitle);
+            levelsHead.appendChild(allLevelsCheck);
+            dbgLevels.appendChild(levelsHead);
+
+            UK_LAYERS.forEach(function (layer) {
+                var wrap = document.createElement('div');
+                wrap.className = 'uk-layer';
+
+                var head = document.createElement('div');
+                head.className = 'uk-layer-head';
+                var name = document.createElement('div');
+                name.className = 'uk-layer-name';
+                name.textContent = layer.title;
+                var check = makeCheck();
+                check.title = 'Marcar ' + layer.title + ' como completada';
+                check.addEventListener('change', function () {
+                    if (layer.prime) {
+                        sendDebug('DebugSetPrimeCompleted', check.checked ? '1' : '0');
+                    } else {
+                        sendDebug('DebugSetLayerCompleted', layer.index + '|' + (check.checked ? '1' : '0'));
+                    }
+                });
+                layerChecks[layer.index] = check;
+                head.appendChild(name);
+                head.appendChild(check);
+                wrap.appendChild(head);
+
+                var list = document.createElement('div');
+                list.className = 'uk-levels';
+                layer.levels.forEach(function (item) {
+                    var b = document.createElement('button');
+                    b.className = 'uk-level';
+                    b.textContent = item[0];
+                    b.onclick = function () { jumpToLevel(item[1]); };
+                    list.appendChild(b);
+                });
+                wrap.appendChild(list);
+                dbgLevels.appendChild(wrap);
+            });
+
+            var gearHead = document.createElement('div');
+            gearHead.className = 'uk-dbg-section';
+            var gearTitle = document.createElement('div');
+            gearTitle.className = 'uk-dbg-section-title';
+            gearTitle.textContent = 'ARSENAL';
+            allGearCheck = makeCheck();
+            allGearCheck.title = 'Desbloquear todo el arsenal';
+            allGearCheck.addEventListener('change', function () {
+                sendDebug('DebugSetAllGear', allGearCheck.checked ? '1' : '0');
+            });
+            gearHead.appendChild(gearTitle);
+            gearHead.appendChild(allGearCheck);
+            dbgGear.appendChild(gearHead);
+
+            var gearList = document.createElement('div');
+            gearList.className = 'uk-gear-list';
+            UK_GEAR.forEach(function (family) {
+                var label = document.createElement('label');
+                label.className = 'uk-gear';
+                var check = makeCheck();
+                check.addEventListener('change', function () {
+                    sendDebug('DebugSetGearFamily', family[1] + '|' + (check.checked ? '1' : '0'));
+                });
+                gearChecks[family[1]] = check;
+                var span = document.createElement('span');
+                span.textContent = family[0];
+                label.appendChild(check);
+                label.appendChild(span);
+                gearList.appendChild(label);
+            });
+            dbgGear.appendChild(gearList);
+
+            var extras = document.createElement('div');
+            extras.className = 'uk-dbg-section';
+            var extrasTitle = document.createElement('div');
+            extrasTitle.className = 'uk-dbg-section-title';
+            extrasTitle.textContent = 'EXTRAS';
+            extras.appendChild(extrasTitle);
+            dbgGear.appendChild(extras);
+
+            var extrasList = document.createElement('div');
+            extrasList.className = 'uk-levels';
+            var cg = document.createElement('button');
+            cg.className = 'uk-level';
+            cg.textContent = 'CYBER GRIND (ENDLESS)';
+            cg.onclick = function () { jumpToLevel('Endless'); };
+            extrasList.appendChild(cg);
+            var ea = document.createElement('button');
+            ea.className = 'uk-level';
+            ea.textContent = 'EARLY ACCESS END';
+            ea.onclick = function () { jumpToLevel('EarlyAccessEnd'); };
+            extrasList.appendChild(ea);
+            dbgGear.appendChild(extrasList);
+        }
+
+        function sendDebug(method, payload) {
+            try {
+                if (!window.unityInstance || !unityInstance.SendMessage) {
+                    toast('El juego aun no ha cargado.');
+                    diag('No se pudo enviar ' + method + ': el juego aun no ha cargado.', 'warning');
+                    return;
+                }
+                diag('→ ' + method + ' ' + payload, 'debug');
+                unityInstance.SendMessage('MapLoader', method, payload);
+                setTimeout(requestDebugState, 150);
+            } catch (e) {
+                toast('No se pudo aplicar: ' + e);
+                diag('Error al enviar ' + method + ': ' + e, 'error');
+            }
+        }
+
+        function requestDebugState() {
+            try {
+                if (window.unityInstance && unityInstance.SendMessage) {
+                    unityInstance.SendMessage('MapLoader', 'DebugPushState');
+                }
+            } catch (e) {}
+        }
+
+        function setCheck(el, checked, indeterminate) {
+            if (!el) return;
+            el.checked = !!checked;
+            el.indeterminate = !checked && !!indeterminate;
+        }
+
+        function applyDebugState(st) {
+            if (!st) return;
+            debugState = st;
+            UK_LAYERS.forEach(function (layer) {
+                var check = layerChecks[layer.index];
+                if (!check) return;
+                if (layer.prime) {
+                    setCheck(check, st.prime > 0, false);
+                } else {
+                    setCheck(check, st.progress > layer.lastLevel, false);
+                }
+            });
+            if (allLevelsCheck) {
+                setCheck(allLevelsCheck, st.progress > 19 && st.prime > 0, false);
+            }
+            var allGear = true;
+            var someGear = false;
+            UK_ALL_GEAR_IDS.forEach(function (id) {
+                var v = (st.gear && st.gear[id]) ? 1 : 0;
+                if (v) someGear = true; else allGear = false;
+            });
+            if (allGearCheck) setCheck(allGearCheck, allGear, someGear && !allGear);
+            UK_GEAR.forEach(function (family) {
+                var check = gearChecks[family[1]];
+                if (!check) return;
+                var all = true;
+                var some = false;
+                family[2].forEach(function (id) {
+                    var v = (st.gear && st.gear[id]) ? 1 : 0;
+                    if (v) some = true; else all = false;
+                });
+                setCheck(check, all, some && !all);
+            });
+        }
+
+        function parseDebugState(raw) {
+            var parts = String(raw).split('|');
+            if (parts.length < 6) return null;
+            var values = parts[5].split(',');
+            var gear = {};
+            UK_ALL_GEAR_IDS.forEach(function (id, i) {
+                gear[id] = parseInt(values[i], 10) || 0;
+            });
+            return {
+                progress: parseInt(parts[0], 10) || 0,
+                difficulty: parseInt(parts[1], 10) || 0,
+                tutorial: parts[2] === '1',
+                intro: parts[3] === '1',
+                prime: parseInt(parts[4], 10) || 0,
+                gear: gear
+            };
+        }
+
+        window.UKDebugReceiveState = function (raw) {
+            try {
+                var st = parseDebugState(raw);
+                if (!st) {
+                    diag('Estado F3 invalido: ' + raw, 'warning');
+                    return;
+                }
+                applyDebugState(st);
+                diag('Estado F3: ' + raw, 'debug');
+            } catch (e) {
+                diag('Error al leer el estado F3: ' + e, 'error');
+            }
+        };
+
+        function releasePointerForMenu() {
+            try {
+                if (document.pointerLockElement && window.__ukNativeExitPointerLock) {
+                    window.__ukNativeExitPointerLock.call(document);
+                } else if (document.exitPointerLock) {
+                    document.exitPointerLock();
+                }
+            } catch (e) {}
+        }
+
+        var toastEl = document.getElementById('uk-toast');
+        var toastTimer = 0;
+
+        function toast(msg, ms) {
+            if (!toastEl) return;
+            toastEl.textContent = msg;
+            toastEl.classList.add('show');
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(function () {
+                toastEl.classList.remove('show');
+            }, ms || 2600);
+        }
+
+        function jumpToLevel(sceneName) {
+            try {
+                if (!window.unityInstance || !unityInstance.SendMessage) {
+                    toast('El juego aun no ha cargado.');
+                    diag('No se puede cargar ' + sceneName + ': el juego aun no ha cargado.', 'warning');
+                    return;
+                }
+                // MapLoader.DebugLoadLevel elige el bundle del acto segun el
+                // nombre del nivel (FinalRank solo cargaba el acto actual).
+                diag('Cargando escena ' + sceneName, 'info');
+                unityInstance.SendMessage('MapLoader', 'DebugLoadLevel', sceneName);
+                toast('Cargando ' + sceneName + '...');
+                if (dbgPanel) dbgPanel.classList.remove('open');
+                dbgOpen = false;
+            } catch (e) {
+                toast('No se pudo cargar el nivel: ' + e);
+                diag('Error al cargar ' + sceneName + ': ' + e, 'error');
+            }
+        }
+
+        // OJO: tiene que estar en window, porque el boton lo llama desde su
+        // atributo onclick (fuera del IIFE). Con "var" aqui el ReferenceError
+        // hacia que el menu de niveles no hiciera nada.
+        window.UKDebug = {
+            toggle: function () {
+                buildDebugList();
+                dbgOpen = !dbgOpen;
+                if (dbgPanel) {
+                    if (dbgOpen) dbgPanel.classList.add('open');
+                    else dbgPanel.classList.remove('open');
+                }
+                if (dbgOpen) {
+                    // Sin esto el juego mantiene el raton capturado y no se
+                    // puede hacer clic en los checkboxes.
+                    releasePointerForMenu();
+                    requestDebugState();
+                }
+                diag('Menu F3 ' + (dbgOpen ? 'abierto' : 'cerrado'), 'info');
+            }
+        };
+
+        // =====================================================================
+        // Consola visible (F2): logs de Unity, errores JS y trazas.
+        // El capturador vive en el <head> (window.__ukLogs); aqui solo se
+        // pinta y se controla el panel.
+        // =====================================================================
+        var logPanel = document.getElementById('uk-log-panel');
+        var logBody = document.getElementById('uk-log-body');
+        var logCountEl = document.getElementById('uk-log-count');
+        var logFab = document.getElementById('uk-log-fab');
+        var logFabCount = document.getElementById('uk-log-fab-count');
+        var logFilterBtn = document.getElementById('uk-log-filter');
+        var logCopyBtn = document.getElementById('uk-log-copy');
+        var logClearBtn = document.getElementById('uk-log-clear');
+        var logCloseBtn = document.getElementById('uk-log-close');
+        var logFilterErrors = false;
+
+        function logEntries() {
+            return window.__ukLogs || [];
+        }
+
+        function formatLogTime(ms) {
+            var d = new Date(ms);
+            function p(n) { return (n < 10 ? '0' : '') + n; }
+            return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()) + '.' + ('00' + d.getMilliseconds()).slice(-3);
+        }
+
+        function logLevelLabel(level) {
+            if (level === 'error') return 'ERR';
+            if (level === 'warning') return 'WARN';
+            if (level === 'debug') return 'DBG';
+            return 'INFO';
+        }
+
+        function makeLogLine(entry) {
+            var line = document.createElement('div');
+            line.className = 'uk-log-line uk-log-' + (entry.level || 'info');
+            var time = document.createElement('span');
+            time.className = 'uk-log-time';
+            time.textContent = formatLogTime(entry.time);
+            var lvl = document.createElement('span');
+            lvl.className = 'uk-log-level';
+            lvl.textContent = logLevelLabel(entry.level);
+            var msg = document.createElement('span');
+            msg.className = 'uk-log-msg';
+            msg.textContent = entry.text;
+            line.appendChild(time);
+            line.appendChild(lvl);
+            line.appendChild(msg);
+            return line;
+        }
+
+        function updateLogBadge() {
+            var count = window.__ukLogErrorCount || 0;
+            if (logCountEl) logCountEl.textContent = count + (count === 1 ? ' error' : ' errores');
+            if (logFabCount) {
+                logFabCount.textContent = count > 99 ? '99+' : String(count);
+                if (count > 0) logFabCount.classList.remove('hidden');
+                else logFabCount.classList.add('hidden');
+            }
+        }
+
+        function appendLogEntry(entry) {
+            if (!logBody) return;
+            var nearBottom = (logBody.scrollHeight - logBody.scrollTop - logBody.clientHeight) < 40;
+            logBody.appendChild(makeLogLine(entry));
+            while (logBody.childNodes.length > 2000) logBody.removeChild(logBody.firstChild);
+            if (nearBottom) logBody.scrollTop = logBody.scrollHeight;
+            updateLogBadge();
+        }
+        window.__ukLogAppend = appendLogEntry;
+
+        function renderAllLogs() {
+            if (!logBody) return;
+            logBody.textContent = '';
+            var entries = logEntries();
+            for (var i = 0; i < entries.length; i++) logBody.appendChild(makeLogLine(entries[i]));
+            logBody.scrollTop = logBody.scrollHeight;
+            updateLogBadge();
+        }
+
+        function openLog() {
+            if (!logPanel) return;
+            logPanel.classList.add('open');
+            logOpen = true;
+            renderAllLogs();
+            releasePointerForMenu();
+            updateLogBadge();
+            if (logBody) logBody.scrollTop = logBody.scrollHeight;
+        }
+
+        function closeLog() {
+            if (!logPanel) return;
+            logPanel.classList.remove('open');
+            logOpen = false;
+        }
+
+        window.UKLogUI = {
+            toggle: function () {
+                if (logOpen) closeLog();
+                else openLog();
+            },
+            open: openLog,
+            close: closeLog
+        };
+
+        window.__ukLogOnError = function () {
+            updateLogBadge();
+            if (!logOpen) openLog();
+        };
+
+        if (logFab) {
+            logFab.addEventListener('click', function () {
+                window.UKLogUI.toggle();
+            });
+        }
+        if (logCloseBtn) logCloseBtn.addEventListener('click', closeLog);
+        if (logFilterBtn) {
+            logFilterBtn.addEventListener('click', function () {
+                logFilterErrors = !logFilterErrors;
+                if (logBody) {
+                    if (logFilterErrors) logBody.classList.add('filter-errors');
+                    else logBody.classList.remove('filter-errors');
+                }
+                logFilterBtn.textContent = logFilterErrors ? 'VER TODO' : 'SOLO ERRORES';
+                logFilterBtn.classList.toggle('active', logFilterErrors);
+            });
+        }
+        if (logClearBtn) {
+            logClearBtn.addEventListener('click', function () {
+                if (window.__ukLogs) window.__ukLogs.length = 0;
+                window.__ukLogErrorCount = 0;
+                if (logBody) logBody.textContent = '';
+                updateLogBadge();
+            });
+        }
+        if (logCopyBtn) {
+            logCopyBtn.addEventListener('click', function () {
+                var text = logEntries().map(function (entry) {
+                    return '[' + formatLogTime(entry.time) + '] ' + logLevelLabel(entry.level) + ' ' + entry.text;
+                }).join('\n');
+                function fallbackCopy() {
+                    try {
+                        var ta = document.createElement('textarea');
+                        ta.value = text;
+                        ta.style.position = 'fixed';
+                        ta.style.opacity = '0';
+                        document.body.appendChild(ta);
+                        ta.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(ta);
+                        toast('Logs copiados.');
+                    } catch (e) {
+                        toast('No se pudo copiar.');
+                    }
+                }
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(function () {
+                        toast('Logs copiados.');
+                    }, fallbackCopy);
+                } else {
+                    fallbackCopy();
+                }
+            });
+        }
+
+        // Pintar lo capturado antes de que existiera el panel.
+        renderAllLogs();
+        if ((window.__ukLogErrorCount || 0) > 0) openLog();
+        diag('Consola lista. F2 para abrir/cerrar.', 'info');
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'F3') {
+                e.preventDefault();
+                UKDebug.toggle();
+            } else if (e.key === 'F2') {
+                e.preventDefault();
+                UKLogUI.toggle();
+            } else if (e.key === 'Escape' && logOpen) {
+                e.preventDefault();
+                UKLogUI.toggle();
+            } else if (e.key === 'Escape' && dbgOpen) {
+                e.preventDefault();
+                UKDebug.toggle();
+            }
+        }, true);
+      })();
+    </script>
+  </body>
+</html>
