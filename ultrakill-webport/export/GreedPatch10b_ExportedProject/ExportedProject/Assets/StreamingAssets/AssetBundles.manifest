@@ -1,0 +1,23 @@
+ManifestFileVersion: 0
+CRC: 1636642926
+AssetBundleManifest:
+  AssetBundleInfos:
+    Info_0:
+      Name: acts/act-1
+      Dependencies:
+        Dependency_0: common
+    Info_1:
+      Name: acts/act-0
+      Dependencies:
+        Dependency_0: common
+    Info_2:
+      Name: common
+      Dependencies: {}
+    Info_3:
+      Name: acts/act-2
+      Dependencies:
+        Dependency_0: common
+    Info_4:
+      Name: acts/prime
+      Dependencies:
+        Dependency_0: common
