@@ -1,0 +1,177 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!319 &31900000
+AvatarMask:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Streetcleaner
+  m_Mask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+  m_Elements:
+  - m_Path:
+    m_Weight: 1
+  - m_Path: Armature
+    m_Weight: 0
+  - m_Path: Armature/elbowIK.L
+    m_Weight: 0
+  - m_Path: Armature/elbowIK.L/elbowIK.L_end
+    m_Weight: 0
+  - m_Path: Armature/elbowIK.R
+    m_Weight: 0
+  - m_Path: Armature/elbowIK.R/elbowIK.R_end
+    m_Weight: 0
+  - m_Path: Armature/flamethrowergrip
+    m_Weight: 1
+  - m_Path: Armature/flamethrowergrip/hose6
+    m_Weight: 0
+  - m_Path: Armature/flamethrowergrip/hose6/hose6_end
+    m_Weight: 0
+  - m_Path: Armature/heelIK.L
+    m_Weight: 0
+  - m_Path: Armature/heelIK.L/heelIK.L_end
+    m_Weight: 0
+  - m_Path: Armature/heelIK.R
+    m_Weight: 0
+  - m_Path: Armature/heelIK.R/heelIK.R_end
+    m_Weight: 0
+  - m_Path: Armature/hoseik
+    m_Weight: 0
+  - m_Path: Armature/hoseik/hoseik_end
+    m_Weight: 0
+  - m_Path: Armature/kneeIK.L
+    m_Weight: 0
+  - m_Path: Armature/kneeIK.L/kneeIK.L_end
+    m_Weight: 0
+  - m_Path: Armature/kneeIK.R
+    m_Weight: 0
+  - m_Path: Armature/kneeIK.R/kneeIK.R_end
+    m_Weight: 0
+  - m_Path: Armature/spine1
+    m_Weight: 1
+  - m_Path: Armature/spine1/coatback1
+    m_Weight: 0
+  - m_Path: Armature/spine1/coatback1/coatback2
+    m_Weight: 0
+  - m_Path: Armature/spine1/coatback1/coatback2/coatback2_end
+    m_Weight: 0
+  - m_Path: Armature/spine1/coatfront1
+    m_Weight: 0
+  - m_Path: Armature/spine1/coatfront1/coatfront2.L
+    m_Weight: 0
+  - m_Path: Armature/spine1/coatfront1/coatfront2.L/coatfront2.L_end
+    m_Weight: 0
+  - m_Path: Armature/spine1/coatfront1/coatfront2.R
+    m_Weight: 0
+  - m_Path: Armature/spine1/coatfront1/coatfront2.R/coatfront2.R_end
+    m_Weight: 0
+  - m_Path: Armature/spine1/coatside1.L
+    m_Weight: 0
+  - m_Path: Armature/spine1/coatside1.L/coatside2.L
+    m_Weight: 0
+  - m_Path: Armature/spine1/coatside1.L/coatside2.L/coatside2.L_end
+    m_Weight: 0
+  - m_Path: Armature/spine1/coatside1.R
+    m_Weight: 0
+  - m_Path: Armature/spine1/coatside1.R/coatside2.R
+    m_Weight: 0
+  - m_Path: Armature/spine1/coatside1.R/coatside2.R/coatside2.R_end
+    m_Weight: 0
+  - m_Path: Armature/spine1/hip.L
+    m_Weight: 0
+  - m_Path: Armature/spine1/hip.L/knee.L
+    m_Weight: 0
+  - m_Path: Armature/spine1/hip.L/knee.L/ankle.L
+    m_Weight: 0
+  - m_Path: Armature/spine1/hip.L/knee.L/ankle.L/toes.L
+    m_Weight: 0
+  - m_Path: Armature/spine1/hip.L/knee.L/ankle.L/toes.L/toes.L_end
+    m_Weight: 0
+  - m_Path: Armature/spine1/hip.R
+    m_Weight: 0
+  - m_Path: Armature/spine1/hip.R/knee.R
+    m_Weight: 0
+  - m_Path: Armature/spine1/hip.R/knee.R/ankle.R
+    m_Weight: 0
+  - m_Path: Armature/spine1/hip.R/knee.R/ankle.R/toes.R
+    m_Weight: 0
+  - m_Path: Armature/spine1/hip.R/knee.R/ankle.R/toes.R/toes.R_end
+    m_Weight: 0
+  - m_Path: Armature/spine1/spine2
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/clavicle.L
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/clavicle.L/upperarm.L
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/clavicle.L/upperarm.L/lowerarm.L
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/clavicle.L/upperarm.L/lowerarm.L/hand.L
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/clavicle.L/upperarm.L/lowerarm.L/hand.L/finger1.L
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/clavicle.L/upperarm.L/lowerarm.L/hand.L/finger1.L/finger2.L
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/clavicle.L/upperarm.L/lowerarm.L/hand.L/finger1.L/finger2.L/finger3.L
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/clavicle.L/upperarm.L/lowerarm.L/hand.L/finger1.L/finger2.L/finger3.L/finger3.L_end
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/clavicle.L/upperarm.L/lowerarm.L/hand.L/thumb1.L
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/clavicle.L/upperarm.L/lowerarm.L/hand.L/thumb1.L/thumb2.L
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/clavicle.L/upperarm.L/lowerarm.L/hand.L/thumb1.L/thumb2.L/thumb2.L_end
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/clavicle.R
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/clavicle.R/upperarm.R
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/clavicle.R/upperarm.R/lowerarm.R
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/clavicle.R/upperarm.R/lowerarm.R/hand.R
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/clavicle.R/upperarm.R/lowerarm.R/hand.R/finger1.R
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/clavicle.R/upperarm.R/lowerarm.R/hand.R/finger1.R/finger2.R
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/clavicle.R/upperarm.R/lowerarm.R/hand.R/finger1.R/finger2.R/finger3.R
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/clavicle.R/upperarm.R/lowerarm.R/hand.R/finger1.R/finger2.R/finger3.R/finger3.R_end
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/clavicle.R/upperarm.R/lowerarm.R/hand.R/thumb1.R
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/clavicle.R/upperarm.R/lowerarm.R/hand.R/thumb1.R/thumb2.R
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/clavicle.R/upperarm.R/lowerarm.R/hand.R/thumb1.R/thumb2.R/thumb2.R_end
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/flamecanister
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/flamecanister/hose1
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/flamecanister/hose1/hose2
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/flamecanister/hose1/hose2/hose3
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/flamecanister/hose1/hose2/hose3/hose4
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/flamecanister/hose1/hose2/hose3/hose4/hose5
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/flamecanister/hose1/hose2/hose3/hose4/hose5/hose5_end
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/neck
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/neck/head
+    m_Weight: 1
+  - m_Path: Armature/spine1/spine2/spine3/neck/head/head_end
+    m_Weight: 1
+  - m_Path: Armature/wristIK.L
+    m_Weight: 1
+  - m_Path: Armature/wristIK.L/wristIK.L_end
+    m_Weight: 0
+  - m_Path: Armature/wristIK.R
+    m_Weight: 1
+  - m_Path: Armature/wristIK.R/wristIK.R_end
+    m_Weight: 0
+  - m_Path: m_streetsweeper
+    m_Weight: 0

@@ -1,0 +1,69 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!319 &31900000
+AvatarMask:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: ShotgunModeMask
+  m_Mask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
+  m_Elements:
+  - m_Path:
+    m_Weight: 1
+  - m_Path: Armature
+    m_Weight: 0
+  - m_Path: Armature/MainBone
+    m_Weight: 0
+  - m_Path: Armature/MainBone/FrontBone
+    m_Weight: 0
+  - m_Path: Armature/MainBone/FrontBone/PumpShellBone
+    m_Weight: 0
+  - m_Path: Armature/MainBone/FrontBone/PumpShellBone/Bone
+    m_Weight: 1
+  - m_Path: Armature/Shell_L
+    m_Weight: 0
+  - m_Path: Armature/Shell_R
+    m_Weight: 0
+  - m_Path: Armature/Upper_Arm
+    m_Weight: 0
+  - m_Path: Armature/Upper_Arm/Forearm
+    m_Weight: 0
+  - m_Path: Armature/Upper_Arm/Forearm/Hand
+    m_Weight: 0
+  - m_Path: Armature/Upper_Arm/Forearm/Hand/Finger_Index_Base
+    m_Weight: 0
+  - m_Path: Armature/Upper_Arm/Forearm/Hand/Finger_Index_Base/Finger_Index_Bridge
+    m_Weight: 0
+  - m_Path: Armature/Upper_Arm/Forearm/Hand/Finger_Index_Base/Finger_Index_Bridge/Finger_Index_Tip
+    m_Weight: 0
+  - m_Path: Armature/Upper_Arm/Forearm/Hand/Finger_Little_Base
+    m_Weight: 0
+  - m_Path: Armature/Upper_Arm/Forearm/Hand/Finger_Little_Base/Finger_Little_Bridge
+    m_Weight: 0
+  - m_Path: Armature/Upper_Arm/Forearm/Hand/Finger_Little_Base/Finger_Little_Bridge/Finger_Little_Tip
+    m_Weight: 0
+  - m_Path: Armature/Upper_Arm/Forearm/Hand/Finger_Middle_Base
+    m_Weight: 0
+  - m_Path: Armature/Upper_Arm/Forearm/Hand/Finger_Middle_Base/Finger_Middle_Bridge
+    m_Weight: 0
+  - m_Path: Armature/Upper_Arm/Forearm/Hand/Finger_Middle_Base/Finger_Middle_Bridge/Finger_Middle_Tip
+    m_Weight: 0
+  - m_Path: Armature/Upper_Arm/Forearm/Hand/Finger_Ring_Base
+    m_Weight: 0
+  - m_Path: Armature/Upper_Arm/Forearm/Hand/Finger_Ring_Base/Finger_Ring_Bridge
+    m_Weight: 0
+  - m_Path: Armature/Upper_Arm/Forearm/Hand/Finger_Ring_Base/Finger_Ring_Bridge/Finger_Ring_Tip
+    m_Weight: 0
+  - m_Path: Armature/Upper_Arm/Forearm/Hand/Finger_Thumb_Base
+    m_Weight: 0
+  - m_Path: Armature/Upper_Arm/Forearm/Hand/Finger_Thumb_Base/Finger_Thumb_Tip
+    m_Weight: 0
+  - m_Path: Cylinder032
+    m_Weight: 0
+  - m_Path: Group002
+    m_Weight: 0
+  - m_Path: Group002/Group001
+    m_Weight: 0
+  - m_Path: Plane005_lp
+    m_Weight: 0

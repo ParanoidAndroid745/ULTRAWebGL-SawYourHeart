@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!241 &24100000
+AudioMixerController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: UnfreezeableAudio
+  m_OutputGroup: {fileID: 0}
+  m_MasterGroup: {fileID: 24300000}
+  m_Snapshots:
+  - {fileID: 24500004}
+  m_StartSnapshot: {fileID: 24500004}
+  m_SuspendThreshold: -80
+  m_EnableSuspend: 1
+  m_UpdateMode: 0
+  m_ExposedParameters:
+  - guid: 2105743243a9bcd46a15c235acc6e53b
+    name: KjpJiUJ
+  - guid: 771f10bac0ace5345943354eb98821b8
+    name: unmmTUL
+  m_AudioMixerGroupViews:
+  - guids:
+    - a9fb62eebb13dda46b52c231b0fc013b
+    name: View
+  m_CurrentViewIndex: 0
+  m_TargetSnapshot: {fileID: 24500004}
+--- !u!243 &24300000
+AudioMixerGroupController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Master
+  m_AudioMixer: {fileID: 24100000}
+  m_GroupID: a9fb62eebb13dda46b52c231b0fc013b
+  m_Children: []
+  m_Volume: 2105743243a9bcd46a15c235acc6e53b
+  m_Pitch: 771f10bac0ace5345943354eb98821b8
+  m_Send: 18d139b565bd2514e91ad7bbcece750d
+  m_Effects:
+  - {fileID: 24400002}
+  m_UserColorIndex: 0
+  m_Mute: 0
+  m_Solo: 0
+  m_BypassEffects: 0
+--- !u!244 &24400002
+AudioMixerEffectController:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: 
+  m_EffectID: de40f290a138f424092f4cb90f693425
+  m_EffectName: Attenuation
+  m_MixLevel: 34ac5ba23d920c443b1480d44127e39a
+  m_Parameters: []
+  m_SendTarget: {fileID: 0}
+  m_EnableWetMix: 0
+  m_Bypass: 0
+--- !u!245 &24500004
+AudioMixerSnapshotController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Snapshot
+  m_AudioMixer: {fileID: 24100000}
+  m_SnapshotID: 5f4e80e3c124eb7429eeccf67a36aca6
+  m_FloatValues:
+    2105743243a9bcd46a15c235acc6e53b: 0
+    18d139b565bd2514e91ad7bbcece750d: -80
+    771f10bac0ace5345943354eb98821b8: 1
+  m_TransitionOverrides: {}
